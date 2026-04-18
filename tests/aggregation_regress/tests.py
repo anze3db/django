@@ -186,8 +186,13 @@ class AggregationTests(TestCase):
         qs = Book.objects.values("contact__name", "publisher__name").annotate(
             publications=Count("id")
         )
-        self.assertEqual(qs.order_by("id").count(), len(qs.order_by("id")))
-        self.assertEqual(qs.extra(order_by=["id"]).count(), len(qs.order_by("id")))
+        expected = len(qs.order_by("id"))
+        self.assertEqual(qs.order_by("id").count(), expected)
+        self.assertEqual(qs.extra(order_by=["id"]).count(), expected)
+        self.assertEqual(qs.order_by("-id").count(), expected)
+        self.assertEqual(qs.order_by("-publications").count(), expected)
+        self.assertEqual(qs.order_by("-contact__name").count(), expected)
+        self.assertEqual(qs.order_by("?").count(), expected)
 
     def test_annotation_with_value(self):
         values = (

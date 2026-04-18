@@ -189,6 +189,23 @@ class AggregationTests(TestCase):
         self.assertEqual(qs.order_by("id").count(), len(qs.order_by("id")))
         self.assertEqual(qs.extra(order_by=["id"]).count(), len(qs.order_by("id")))
 
+    def test_count_preserve_group_by_with_descending_order_by(self):
+        # Regression test: ``Query.orderby_issubset_groupby`` must handle the
+        # "-" (descending) and "?" (random) prefixes accepted by
+        # ``QuerySet.order_by`` without crashing.
+        qs = Book.objects.values("contact__name", "publisher__name").annotate(
+            publications=Count("id")
+        )
+        expected = len(qs.order_by("id"))
+        # Descending ordering on a non-grouped field.
+        self.assertEqual(qs.order_by("-id").count(), expected)
+        # Descending ordering on an annotated aggregate.
+        self.assertEqual(qs.order_by("-publications").count(), expected)
+        # Descending ordering on a grouped field.
+        self.assertEqual(qs.order_by("-contact__name").count(), expected)
+        # # Random ordering.
+        self.assertEqual(qs.order_by("?").count(), expected)
+
     def test_annotation_with_value(self):
         values = (
             Book.objects.filter(
